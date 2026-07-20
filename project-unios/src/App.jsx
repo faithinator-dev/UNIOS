@@ -18,7 +18,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        "https://uniosback.vercel.app/chat",
+        "https://unios.onrender.com/chat",
         {
           method: "POST",
           headers: {
