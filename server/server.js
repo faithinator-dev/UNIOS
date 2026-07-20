@@ -1,34 +1,20 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import { createRequire } from "node:module";
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const MODEL = process.env.OPENAI_MODEL || "gpt-5";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const require = createRequire(import.meta.url);
+const OpenAI = require("openai");
+let client;
 
-app.use(cors());
-app.use(express.json());
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Health Check
-app.get("/", (req, res) => {
-  res.send("UNIOS Backend is Live!");
-});
-
-// Chat Endpoint
-app.post("/chat", async (req, res) => {
-  try {
-    const { page, input } = req.body;
-
-    let prompt = "";
-
-    switch (page) {
-      case "Chat Brain":
-        prompt = `
+const modulePrompts = {
+  "Chat Brain": (input) => `
 You are Chat Brain.
 
 Help the user:
@@ -38,11 +24,8 @@ Help the user:
 
 User Input:
 ${input}
-`;
-        break;
-
-      case "StudyBuddy":
-        prompt = `
+`,
+  StudyBuddy: (input) => `
 You are StudyBuddy.
 
 Convert the content into:
@@ -52,11 +35,8 @@ Convert the content into:
 
 Content:
 ${input}
-`;
-        break;
-
-      case "Codex Debugger":
-        prompt = `
+`,
+  "Codex Debugger": (input) => `
 You are a senior software engineer.
 
 Analyze this code and return:
@@ -66,11 +46,8 @@ Analyze this code and return:
 
 Code:
 ${input}
-`;
-        break;
-
-      case "ELI5 Tutor":
-        prompt = `
+`,
+  "ELI5 Tutor": (input) => `
 Explain the following topic to a 10-year-old.
 
 Include:
@@ -80,34 +57,11 @@ Include:
 
 Topic:
 ${input}
-`;
-        break;
+`,
+};
 
-      default:
-        prompt = input;
-    }
-
-    const response = await client.responses.create({
-      model: "gpt-5",
-      input: prompt,
-    });
-
-    res.json({
-      success: true,
-      message: response.output_text,
-    });
-  } catch (error) {
-    console.error("SERVER ERROR:", error);
-
-    // Demo Mode Fallback
-    if (error.code === "insufficient_quota") {
-      console.log("RUNNING IN DEMO MODE");
-
-      switch (req.body.page) {
-        case "Chat Brain":
-          return res.json({
-            success: true,
-            message: `
+const demoResponses = {
+  "Chat Brain": `
 DEMO MODE
 
 Weekly Plan:
@@ -117,13 +71,8 @@ Tuesday - Build Projects
 Wednesday - Study Node.js
 Thursday - Practice APIs
 Friday - Review Progress
-            `,
-          });
-
-        case "StudyBuddy":
-          return res.json({
-            success: true,
-            message: `
+`,
+  StudyBuddy: `
 DEMO MODE
 
 NOTES:
@@ -136,13 +85,8 @@ A: A JavaScript library.
 QUIZ:
 1. Who developed React?
 2. What are components?
-            `,
-          });
-
-        case "Codex Debugger":
-          return res.json({
-            success: true,
-            message: `
+`,
+  "Codex Debugger": `
 DEMO MODE
 
 ERROR:
@@ -155,13 +99,8 @@ console.log(name);
 
 BEST PRACTICE:
 Always initialize variables before using them.
-            `,
-          });
-
-        case "ELI5 Tutor":
-          return res.json({
-            success: true,
-            message: `
+`,
+  "ELI5 Tutor": `
 DEMO MODE
 
 JavaScript is like the brain of a website.
@@ -170,26 +109,174 @@ Without it, buttons would not work and pages would not respond to users.
 
 Fun Fact:
 Almost every modern website uses JavaScript!
-            `,
-          });
+`,
+};
 
-        default:
-          return res.json({
-            success: true,
-            message:
-              "UNIOS is currently running in Demo Mode. OpenAI credits will be added soon.",
-          });
-      }
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(
+      `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
+    );
+  });
+
+  next();
+});
+
+function createHttpError(status, message, code = "REQUEST_ERROR") {
+  const error = new Error(message);
+  error.status = status;
+  error.code = code;
+  return error;
+}
+
+function buildPrompt(page, input) {
+  const promptBuilder = modulePrompts[page];
+  return promptBuilder ? promptBuilder(input) : input;
+}
+
+function getDemoResponse(page) {
+  return (
+    demoResponses[page] ||
+    "UNIOS is currently running in Demo Mode. OpenAI credits will be added soon."
+  ).trim();
+}
+
+function shouldUseDemoMode(error) {
+  if (
+    error?.status >= 400 &&
+    error?.status < 500 &&
+    error.status !== 401 &&
+    error.status !== 429
+  ) {
+    return false;
+  }
+
+  return (
+    process.env.DEMO_MODE === "true" ||
+    !process.env.OPENAI_API_KEY ||
+    error?.code === "insufficient_quota" ||
+    error?.status === 401 ||
+    error?.status === 429
+  );
+}
+
+function logError(error, context = {}) {
+  console.error("SERVER ERROR:", {
+    message: error.message,
+    code: error.code,
+    status: error.status,
+    ...context,
+  });
+}
+
+function getOpenAIClient() {
+  if (!client) {
+    client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+
+  return client;
+}
+
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "UNIOS Backend is Live!",
+    service: "unios-api",
+    demoMode: process.env.DEMO_MODE === "true" || !process.env.OPENAI_API_KEY,
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "ok",
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.post("/chat", async (req, res, next) => {
+  const { page, input } = req.body || {};
+
+  try {
+    if (typeof input !== "string" || input.trim().length === 0) {
+      throw createHttpError(400, "Input is required.", "INVALID_INPUT");
     }
 
-    res.status(500).json({
-      success: false,
-      message: error.message,
+    if (input.length > 12000) {
+      throw createHttpError(
+        413,
+        "Input is too long. Please shorten it and try again.",
+        "INPUT_TOO_LONG"
+      );
+    }
+
+    if (process.env.DEMO_MODE === "true" || !process.env.OPENAI_API_KEY) {
+      return res.json({
+        success: true,
+        message: getDemoResponse(page),
+        demoMode: true,
+      });
+    }
+
+    const response = await getOpenAIClient().responses.create({
+      model: MODEL,
+      input: buildPrompt(page, input.trim()),
     });
+
+    return res.json({
+      success: true,
+      message: response.output_text,
+      demoMode: false,
+    });
+  } catch (error) {
+    if (shouldUseDemoMode(error)) {
+      logError(error, { route: "/chat", page, fallback: "demo" });
+
+      return res.json({
+        success: true,
+        message: getDemoResponse(page),
+        demoMode: true,
+      });
+    }
+
+    return next(error);
   }
 });
 
-const PORT = process.env.PORT;
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Endpoint not found.",
+    code: "NOT_FOUND",
+  });
+});
+
+app.use((error, req, res, next) => {
+  const status = error.status || 500;
+
+  logError(error, {
+    method: req.method,
+    path: req.originalUrl,
+  });
+
+  res.status(status).json({
+    success: false,
+    message:
+      status >= 500 && IS_PRODUCTION
+        ? "Something went wrong. Please try again."
+        : error.message,
+    code: error.code || "SERVER_ERROR",
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`UNIOS Server running on port ${PORT}`);
