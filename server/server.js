@@ -18,6 +18,10 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+app.get("/", (req, res) => {
+  res.send("Backend is working!");
+});
+
 app.post("/chat", async (req, res) => {
   const { page, input } = req.body;
 
