@@ -1,17 +1,45 @@
-# React + Vite
+# Project UNIOS — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This folder contains the UNIOS React frontend (Vite). I updated the UI to a modern, production-ready AI dashboard while preserving all existing functionality (Chat Brain, StudyBuddy, Codex Debugger, ELI5 Tutor).
 
-Currently, two official plugins are available:
+Key UI enhancements:
+- Glassmorphism, gradient backgrounds, and floating decorative elements
+- Smooth transitions, staggered entrance, and micro-interactions
+- Loading spinners, skeleton loaders, and typing indicators
+- Sticky sidebar, responsive layout, and dark mode support
+- Accessibility and semantic markup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Quick start
 
-## React Compiler
+Install dependencies and run the dev server:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd project-unios
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Build for production:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-"# Project-unios" 
+```bash
+npm run build
+npm run preview
+```
+
+Notes for deployment
+- The frontend calls the UNIOS backend at `https://unios.onrender.com/chat` by default. For production, set your backend URL and ensure CORS and authentication are configured server-side.
+- Serve the built `dist/` with a static host (Vercel, Netlify, Render, or any static file server) behind HTTPS.
+
+Development details
+- The app uses plain CSS in `src/index.css`. No Tailwind utilities are required for the updated UI.
+- New reusable components live in `src/components/` and are lightweight and accessible.
+
+Accessibility & performance
+- Buttons and inputs include ARIA attributes and focus styles.
+- Animations are CSS-only, hardware-accelerated where possible.
+- Keep large responses paginated or chunked on the backend to avoid long blocking renders.
+
+If you want, I can:
+- Replace or remove Tailwind-related packages from `package.json`.
+- Add a small e2e test to verify the four AI tools with mocked backend responses.
+
