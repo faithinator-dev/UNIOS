@@ -1,0 +1,54 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+}
+
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+aside {
+  width: 250px;
+  background: #111827;
+  padding: 20px;
+}
+
+aside button {
+  width: 100%;
+  margin: 10px 0;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+main {
+  flex: 1;
+  padding: 40px;
+}
+
+textarea {
+  width: 100%;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 12px 20px;
+}
+
+pre {
+  margin-top: 20px;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+}
