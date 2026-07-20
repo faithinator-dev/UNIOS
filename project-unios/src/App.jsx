@@ -18,7 +18,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        "https://uniosbackend.vercel.app/chat",
+        "https://uniosback.vercel.app/chat",
         {
           method: "POST",
           headers: {
