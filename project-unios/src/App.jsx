@@ -31,15 +31,24 @@ export default function App() {
         }
       );
 
-      const data = await response.json();
+      console.log("Status:", response.status);
 
-      setOutput(data.message);
+const data = await response.json();
+
+console.log(data);
+
+if (!response.ok) {
+  setOutput(data.message || "Something went wrong.");
+  return;
+}
+
+setOutput(data.message);
     } catch (error) {
       console.log(error);
 
       setOutput(
-        "Unable to connect to the server. Make sure your backend is running on port 3000."
-      );
+  "Unable to connect to the UNIOS backend. Please check the Render deployment and try again."
+);
     } finally {
       setLoading(false);
     }
