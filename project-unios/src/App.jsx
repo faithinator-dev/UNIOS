@@ -62,7 +62,7 @@ function App() {
     <div className={`app-shell ${view === "workspace" ? "is-workspace" : "is-landing"}`}>
       <header className="site-header">
         <button className="brand" onClick={() => setView("landing")} aria-label="UNIOS home">
-          <span className="brand-mark">U</span><span>UNIOS</span>
+          <span className="brand-mark"><img src="/logo.png" alt="" /></span><span>UNIOS</span>
         </button>
         <nav aria-label="Primary navigation">
           <a href="#capabilities">Capabilities</a>
