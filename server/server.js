@@ -116,9 +116,63 @@ const demoResponses = {
 /*                               Helper Methods                               */
 /* -------------------------------------------------------------------------- */
 
-function buildPrompt(page, input) {
-  const fn = prompts[page];
-  return fn ? fn(input) : input;
+function buildPrompt(page, messages) {
+  const history = messages
+    .map((msg) => `${msg.role}: ${msg.content}`)
+    .join("\n");
+
+  switch (page) {
+    case "Chat Brain":
+      return `
+You are Chat Brain.
+
+Help users:
+- Plan schedules
+- Write emails
+- Brainstorm ideas
+
+Conversation:
+${history}
+`;
+    case "StudyBuddy":
+      return `
+You are StudyBuddy.
+
+Generate:
+1. Notes
+2. Flashcards
+3. Quiz Questions
+
+Conversation:
+${history}
+`;
+    case "Codex Debugger":
+      return `
+You are a senior software engineer.
+
+Return:
+1. Error Explanation
+2. Fixed Code
+3. Best Practice
+
+Conversation:
+${history}
+`;
+    case "ELI5 Tutor":
+      return `
+Explain things to a 10-year-old.
+
+Include:
+1. Simple Explanation
+2. Examples
+3. Fun Facts
+
+Conversation:
+${history}
+`;
+    default:
+      return history;
+  }
 }
 
 async function askOpenAI(prompt) {
@@ -226,16 +280,16 @@ app.get("/test-gemini", async (req, res) => {
 
 app.post("/chat", async (req, res) => {
   try {
-    const { page, input } = req.body;
+    const { page, messages } = req.body;
 
-    if (!input?.trim()) {
+    if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Input is required.",
+        message: "Messages are required.",
       });
     }
 
-    const prompt = buildPrompt(page, input);
+    const prompt = buildPrompt(page, messages);
 
     const result = await askAI(prompt);
 
@@ -246,11 +300,11 @@ app.post("/chat", async (req, res) => {
         demoMode: true,
         message:
           demoResponses[page] ||
-          "UNIOS is currently in Demo Mode.",
+          "UNIOS is currently running in Demo Mode.",
       });
     }
 
-    return res.json({
+    res.json({
       success: true,
       provider: result.provider,
       demoMode: false,

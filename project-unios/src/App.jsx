@@ -13,6 +13,7 @@ function App() {
   const [page, setPage] = useState("Chat Brain");
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("unios-theme") !== "light");
@@ -31,32 +32,68 @@ function App() {
     setMenuOpen(false);
   };
 
-  const askUNIOS = async () => {
-    if (!input.trim()) {
-      setOutput("Please enter some text.");
+ const askUNIOS = async () => {
+  if (!input.trim()) {
+    setOutput("Please enter some text.");
+    return;
+  }
+
+  const updatedMessages = [
+    ...messages,
+    {
+      role: "user",
+      content: input,
+    },
+  ];
+
+  setMessages(updatedMessages);
+
+  setLoading(true);
+  setOutput("");
+
+  try {
+    const response = await fetch(
+      "https://unios.onrender.com/chat",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          page,
+          messages: updatedMessages,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setOutput(data.message);
       return;
     }
-    setLoading(true);
-    setOutput("");
-    try {
-      const response = await fetch("https://unios.onrender.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page, input }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setOutput(data.message || "Something went wrong.");
-        return;
-      }
-      setOutput(data.message);
-    } catch (error) {
-      console.error(error);
-      setOutput("Unable to connect to the UNIOS backend. Please check the Render deployment and try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: data.message,
+      },
+    ]);
+
+    setOutput(data.message);
+
+    setInput("");
+  } catch (error) {
+    console.error(error);
+
+    setOutput(
+      "Unable to connect to the UNIOS backend."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className={`app-shell ${view === "workspace" ? "is-workspace" : "is-landing"}`}>
