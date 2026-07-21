@@ -535,6 +535,13 @@ nav a:hover,
   padding: 22px;
   margin: 20px 0 20px;
 }
+
+.prompt-panel{
+  position: sticky;
+  bottom: 0;
+  padding-bottom: 5px;
+
+}
 .prompt-panel label {
   display: block;
   margin: 0 0 13px;
@@ -544,8 +551,8 @@ nav a:hover,
 }
 .prompt-panel textarea {
   width: 100%;
-  min-height: 30px;
-  max-height: 100px;
+  /* min-height: 20px; */
+  max-height: 50px;
   resize: vertical;
   border: 0;
   outline: 0;
@@ -562,7 +569,7 @@ nav a:hover,
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--line);
-  padding-top: 14px;
+  padding-top: 5px;
   color: var(--muted);
   font-size: 12px;
 }

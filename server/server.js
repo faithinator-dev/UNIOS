@@ -14,22 +14,15 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
-const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 console.log("========== UNIOS STARTUP ==========");
 console.log("PORT:", PORT);
-console.log(
-  "OPENAI:",
-  process.env.OPENAI_API_KEY ? "FOUND" : "MISSING"
-);
-console.log(
-  "GEMINI:",
-  process.env.GEMINI_API_KEY ? "FOUND" : "MISSING"
-);
+console.log("OPENAI:", process.env.OPENAI_API_KEY ? "FOUND" : "MISSING");
+console.log("GEMINI:", process.env.GEMINI_API_KEY ? "FOUND" : "MISSING");
 console.log("===================================");
 
 /* -------------------------------------------------------------------------- */
@@ -214,15 +207,11 @@ async function askAI(prompt) {
         message,
       };
     } catch (geminiError) {
-      console.log(
-        "Gemini Failed:",
-        geminiError.message
-      );
+      console.log("Gemini Failed:", geminiError.message);
 
       return {
         provider: "Demo Mode",
-        message:
-          "UNIOS is currently running in Demo Mode.",
+        message: "UNIOS is currently running in Demo Mode.",
       };
     }
   }
@@ -299,8 +288,7 @@ app.post("/chat", async (req, res) => {
         provider: "Demo Mode",
         demoMode: true,
         message:
-          demoResponses[page] ||
-          "UNIOS is currently running in Demo Mode.",
+          demoResponses[page] || "UNIOS is currently running in Demo Mode.",
       });
     }
 
@@ -336,7 +324,5 @@ app.use((req, res) => {
 /* -------------------------------------------------------------------------- */
 
 app.listen(PORT, () => {
-  console.log(
-    `🚀 UNIOS Server running at http://localhost:${PORT}`
-  );
+  console.log(`🚀 UNIOS Server running at http://localhost:${PORT}`);
 });
