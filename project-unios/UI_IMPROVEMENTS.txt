@@ -1,0 +1,31 @@
+UNIOS UI IMPROVEMENTS
+=====================
+
+The frontend was redesigned while preserving the existing UNIOS AI request flow.
+
+What changed
+------------
+- Added a branded landing page with a hero section, clear calls to action, and an interactive product preview.
+- Added a capabilities section for Chat Brain, StudyBuddy, Codex Debugger, and ELI5 Tutor.
+- Added a branded footer with copyright, product message, and workspace link.
+- Added a dark/light theme toggle. The selected theme is saved in browser local storage.
+- Redesigned the existing AI workspace with clearer navigation, prompt panel, response state, status indicator, and a return-to-home action.
+- Preserved the existing backend request to https://unios.onrender.com/chat and its loading/error behavior.
+
+Responsive design
+-----------------
+- Desktop: split landing layout and persistent workspace sidebar.
+- Tablet: responsive grids and a condensed workspace layout.
+- Mobile: single-column hero and cards, compact header, and a toggleable tool menu.
+
+Accessibility and polish
+------------------------
+- Added semantic landmarks, labels, aria states, and live response announcements.
+- Added visible keyboard focus styles.
+- Added disabled states while requests are in progress.
+- Added smooth page/card/visual animations.
+- Added a prefers-reduced-motion fallback to minimize motion for users who request it.
+
+Verification note
+-----------------
+The production build was attempted. It is currently blocked because the local project installation is missing @vitejs/plugin-react. Run npm install in this folder and then npm run build to verify the build.
