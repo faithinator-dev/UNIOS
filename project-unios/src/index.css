@@ -533,9 +533,11 @@ nav a:hover,
   background: var(--surface);
   border-radius: 14px;
   padding: 22px;
+  margin: 20px 0 20px;
 }
 .prompt-panel label {
   display: block;
+  margin: 0 0 13px;
   font-weight: 700;
   font-size: 14px;
   margin-bottom: 13px;
