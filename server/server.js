@@ -178,7 +178,7 @@ function logError(error, context = {}) {
 function getOpenAIClient() {
   if (!client) {
     client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: `Bearer ${process.env.OPENAI_API_KEY}`,
     });
   }
 
