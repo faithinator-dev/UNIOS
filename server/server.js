@@ -7,7 +7,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MODEL = process.env.OPENAI_MODEL || "gpt-5";
+const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const require = createRequire(import.meta.url);
 const OpenAI = require("openai");
@@ -178,7 +178,7 @@ function logError(error, context = {}) {
 function getOpenAIClient() {
   if (!client) {
     client = new OpenAI({
-      apiKey: `Bearer ${process.env.OPENAI_API_KEY}`,
+      apiKey: process.env.OPENAI_API_KEY,
     });
   }
 
