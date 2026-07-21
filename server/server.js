@@ -1,34 +1,70 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { createRequire } from "node:module";
+import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const require = createRequire(import.meta.url);
-const OpenAI = require("openai");
-let client;
 
-const modulePrompts = {
+/* -------------------------------------------------------------------------- */
+/*                                Configuration                               */
+/* -------------------------------------------------------------------------- */
+
+const PORT = process.env.PORT || 5000;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+
+console.log("========== UNIOS STARTUP ==========");
+console.log("PORT:", PORT);
+console.log(
+  "OPENAI:",
+  process.env.OPENAI_API_KEY ? "FOUND" : "MISSING"
+);
+console.log(
+  "GEMINI:",
+  process.env.GEMINI_API_KEY ? "FOUND" : "MISSING"
+);
+console.log("===================================");
+
+/* -------------------------------------------------------------------------- */
+/*                                 AI Clients                                 */
+/* -------------------------------------------------------------------------- */
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const gemini = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+/* -------------------------------------------------------------------------- */
+/*                                  Prompts                                   */
+/* -------------------------------------------------------------------------- */
+
+const prompts = {
   "Chat Brain": (input) => `
 You are Chat Brain.
 
-Help the user:
+Help users:
 - Plan schedules
 - Write emails
 - Brainstorm ideas
 
-User Input:
+User:
 ${input}
 `,
+
   StudyBuddy: (input) => `
 You are StudyBuddy.
 
-Convert the content into:
+Generate:
 1. Notes
 2. Flashcards
 3. Quiz Questions
@@ -36,10 +72,11 @@ Convert the content into:
 Content:
 ${input}
 `,
+
   "Codex Debugger": (input) => `
 You are a senior software engineer.
 
-Analyze this code and return:
+Return:
 1. Error Explanation
 2. Fixed Code
 3. Best Practice
@@ -47,8 +84,9 @@ Analyze this code and return:
 Code:
 ${input}
 `,
+
   "ELI5 Tutor": (input) => `
-Explain the following topic to a 10-year-old.
+Explain this to a 10-year-old.
 
 Include:
 1. Simple Explanation
@@ -61,223 +99,190 @@ ${input}
 };
 
 const demoResponses = {
-  "Chat Brain": `
-DEMO MODE
+  "Chat Brain":
+    "Monday: Learn React\nTuesday: Build Projects\nWednesday: Study Node.js",
 
-Weekly Plan:
+  StudyBuddy:
+    "NOTES:\nReact is a JavaScript library.\n\nFLASHCARDS:\nQ: What is React?\nA: A UI library.",
 
-Monday - Learn React
-Tuesday - Build Projects
-Wednesday - Study Node.js
-Thursday - Practice APIs
-Friday - Review Progress
-`,
-  StudyBuddy: `
-DEMO MODE
+  "Codex Debugger":
+    'ERROR:\n"name" is not defined.\n\nFIXED:\nconst name = "Faith";',
 
-NOTES:
-- React is a JavaScript library for building user interfaces.
-
-FLASHCARDS:
-Q: What is React?
-A: A JavaScript library.
-
-QUIZ:
-1. Who developed React?
-2. What are components?
-`,
-  "Codex Debugger": `
-DEMO MODE
-
-ERROR:
-'name' is not defined.
-
-FIXED CODE:
-
-const name = "Faith";
-console.log(name);
-
-BEST PRACTICE:
-Always initialize variables before using them.
-`,
-  "ELI5 Tutor": `
-DEMO MODE
-
-JavaScript is like the brain of a website.
-
-Without it, buttons would not work and pages would not respond to users.
-
-Fun Fact:
-Almost every modern website uses JavaScript!
-`,
+  "ELI5 Tutor":
+    "JavaScript is the brain of a website. It makes buttons and pages interactive.",
 };
 
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-
-app.use((req, res, next) => {
-  const start = Date.now();
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(
-      `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
-    );
-  });
-
-  next();
-});
-
-function createHttpError(status, message, code = "REQUEST_ERROR") {
-  const error = new Error(message);
-  error.status = status;
-  error.code = code;
-  return error;
-}
+/* -------------------------------------------------------------------------- */
+/*                               Helper Methods                               */
+/* -------------------------------------------------------------------------- */
 
 function buildPrompt(page, input) {
-  const promptBuilder = modulePrompts[page];
-  return promptBuilder ? promptBuilder(input) : input;
+  const fn = prompts[page];
+  return fn ? fn(input) : input;
 }
 
-function getDemoResponse(page) {
-  return (
-    demoResponses[page] ||
-    "UNIOS is currently running in Demo Mode. OpenAI credits will be added soon."
-  ).trim();
-}
-
-function shouldUseDemoMode(error) {
-  if (
-    error?.status >= 400 &&
-    error?.status < 500 &&
-    error.status !== 401 &&
-    error.status !== 429
-  ) {
-    return false;
-  }
-
-  return (
-    process.env.DEMO_MODE === "true" ||
-    !process.env.OPENAI_API_KEY ||
-    error?.code === "insufficient_quota" ||
-    error?.status === 401 ||
-    error?.status === 429
-  );
-}
-
-function logError(error, context = {}) {
-  console.error("SERVER ERROR:", {
-    message: error.message,
-    code: error.code,
-    status: error.status,
-    ...context,
+async function askOpenAI(prompt) {
+  const response = await openai.responses.create({
+    model: OPENAI_MODEL,
+    input: prompt,
   });
+
+  return response.output_text;
 }
 
-function getOpenAIClient() {
-  if (!client) {
-    client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+async function askGemini(prompt) {
+  const response = await gemini.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: prompt,
+  });
+
+  return response.text;
+}
+
+async function askAI(prompt) {
+  // OpenAI
+  try {
+    const message = await askOpenAI(prompt);
+
+    return {
+      provider: "OpenAI",
+      message,
+    };
+  } catch (error) {
+    console.log("OpenAI Failed:", error.code);
+
+    // Gemini
+    try {
+      const message = await askGemini(prompt);
+
+      return {
+        provider: "Gemini",
+        message,
+      };
+    } catch (geminiError) {
+      console.log(
+        "Gemini Failed:",
+        geminiError.message
+      );
+
+      return {
+        provider: "Demo Mode",
+        message:
+          "UNIOS is currently running in Demo Mode.",
+      };
+    }
   }
-
-  return client;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   Routes                                   */
+/* -------------------------------------------------------------------------- */
 
 app.get("/", (req, res) => {
   res.json({
     success: true,
+    name: "UNIOS",
     message: "UNIOS Backend is Live!",
-    service: "unios-api",
-    demoMode: process.env.DEMO_MODE === "true" || !process.env.OPENAI_API_KEY,
   });
 });
 
 app.get("/health", (req, res) => {
   res.json({
     success: true,
-    status: "ok",
+    status: "healthy",
     uptime: Math.round(process.uptime()),
-    timestamp: new Date().toISOString(),
   });
 });
 
-app.post("/chat", async (req, res, next) => {
-  const { page, input } = req.body || {};
-
+app.get("/test-openai", async (req, res) => {
   try {
-    if (typeof input !== "string" || input.trim().length === 0) {
-      throw createHttpError(400, "Input is required.", "INVALID_INPUT");
-    }
+    const response = await askOpenAI("Say hello.");
 
-    if (input.length > 12000) {
-      throw createHttpError(
-        413,
-        "Input is too long. Please shorten it and try again.",
-        "INPUT_TOO_LONG"
-      );
-    }
+    res.json({
+      provider: "OpenAI",
+      message: response,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
 
-    if (process.env.DEMO_MODE === "true" || !process.env.OPENAI_API_KEY) {
-      return res.json({
-        success: true,
-        message: getDemoResponse(page),
-        demoMode: true,
+app.get("/test-gemini", async (req, res) => {
+  try {
+    const response = await askGemini("Say hello.");
+
+    res.json({
+      provider: "Gemini",
+      message: response,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
+app.post("/chat", async (req, res) => {
+  try {
+    const { page, input } = req.body;
+
+    if (!input?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Input is required.",
       });
     }
 
-    const response = await getOpenAIClient().responses.create({
-      model: MODEL,
-      input: buildPrompt(page, input.trim()),
-    });
+    const prompt = buildPrompt(page, input);
+
+    const result = await askAI(prompt);
+
+    if (result.provider === "Demo Mode") {
+      return res.json({
+        success: true,
+        provider: "Demo Mode",
+        demoMode: true,
+        message:
+          demoResponses[page] ||
+          "UNIOS is currently in Demo Mode.",
+      });
+    }
 
     return res.json({
       success: true,
-      message: response.output_text,
+      provider: result.provider,
       demoMode: false,
+      message: result.message,
     });
   } catch (error) {
-    if (shouldUseDemoMode(error)) {
-      logError(error, { route: "/chat", page, fallback: "demo" });
+    console.error(error);
 
-      return res.json({
-        success: true,
-        message: getDemoResponse(page),
-        demoMode: true,
-      });
-    }
-
-    return next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
+
+/* -------------------------------------------------------------------------- */
+/*                                Error Routes                                */
+/* -------------------------------------------------------------------------- */
 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Endpoint not found.",
-    code: "NOT_FOUND",
   });
 });
 
-app.use((error, req, res, next) => {
-  const status = error.status || 500;
-
-  logError(error, {
-    method: req.method,
-    path: req.originalUrl,
-  });
-
-  res.status(status).json({
-    success: false,
-    message:
-      status >= 500 && IS_PRODUCTION
-        ? "Something went wrong. Please try again."
-        : error.message,
-    code: error.code || "SERVER_ERROR",
-  });
-});
+/* -------------------------------------------------------------------------- */
+/*                                  Startup                                   */
+/* -------------------------------------------------------------------------- */
 
 app.listen(PORT, () => {
-  console.log(`UNIOS Server running on port ${PORT}`);
+  console.log(
+    `🚀 UNIOS Server running at http://localhost:${PORT}`
+  );
 });
