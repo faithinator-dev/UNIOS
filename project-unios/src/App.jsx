@@ -292,28 +292,7 @@ function App() {
                 ← Back home
               </button>
             </div>
-            <div className="prompt-panel">
-              <label htmlFor="unios-prompt">What’s on your mind?</label>
-              <textarea
-                id="unios-prompt"
-                rows="9"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder={activeTool.placeholder}
-                disabled={loading}
-              />
-              <div className="prompt-footer">
-                <span>{input.length} characters</span>
-                <button
-                  className="button button-primary"
-                  onClick={askUNIOS}
-                  disabled={loading}
-                >
-                  {loading ? "Thinking…" : "Ask UNIOS"}{" "}
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            </div>
+           
             <section
               className="output"
               aria-live="polite"
@@ -349,6 +328,28 @@ function App() {
                 </div>
               )}
             </section>
+             <div className="prompt-panel">
+              <label htmlFor="unios-prompt">What’s on your mind?</label>
+              <textarea
+                id="unios-prompt"
+                rows="9"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder={activeTool.placeholder}
+                disabled={loading}
+              />
+              <div className="prompt-footer">
+                <span>{input.length} characters</span>
+                <button
+                  className="button button-primary"
+                  onClick={askUNIOS}
+                  disabled={loading}
+                >
+                  {loading ? "Thinking…" : "Ask UNIOS"}{" "}
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </div>
           </section>
         </main>
       )}

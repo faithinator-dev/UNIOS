@@ -542,7 +542,7 @@ nav a:hover,
 }
 .prompt-panel textarea {
   width: 100%;
-  min-height: 150px;
+  min-height: 80px;
   resize: vertical;
   border: 0;
   outline: 0;
